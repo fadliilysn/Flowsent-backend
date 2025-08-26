@@ -144,7 +144,7 @@ class EmailService
     }
     
     /**
-     * ✅ Sekali fetch semua folder
+     * Sekali fetch semua folder
      */
     public function fetchAllEmails($limit = 20): array
     {

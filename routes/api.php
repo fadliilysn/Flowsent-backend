@@ -10,7 +10,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth.toke
 
 // Email
 Route::middleware('auth.token')->group(function () {
-Route::get('/me', [AuthController::class, 'me']); //buat cek doang jwt tokennya bisa
+Route::get('/me', [AuthController::class, 'me']);
 Route::get('/emails/all', [EmailController::class, 'all']);
 Route::get('/emails/inbox', [EmailController::class, 'inbox']);
 Route::get('/emails/folders', [EmailController::class, 'folders']);

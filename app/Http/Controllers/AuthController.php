@@ -27,7 +27,7 @@ class AuthController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Email or password does not match'], 401);
             }
 
-            // ✅ Tes koneksi ke IMAP dengan error handling
+            // Tes koneksi ke IMAP dengan error handling
             try {
                 $imap = @imap_open(
                     '{mx.kirimemail.com:993/imap/ssl}INBOX',
@@ -44,7 +44,7 @@ class AuthController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'IMAP connection failed', 'error' => $imapEx->getMessage()], 500);
             }
 
-            // ✅ Custom claims (tanpa User model)
+            // Custom claims (tanpa User model)
             $payload = JWTFactory::customClaims([
                 'sub'      => $email,     // subject wajib
                 'email'    => $email,
