@@ -6,10 +6,12 @@ use App\Http\Controllers\AuthController;
 
 // Auth
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth.token');
 
 // Email
 Route::middleware('auth.token')->group(function () {
 Route::get('/me', [AuthController::class, 'me']); //buat cek doang jwt tokennya bisa
+Route::get('/emails/all', [EmailController::class, 'all']);
 Route::get('/emails/inbox', [EmailController::class, 'inbox']);
 Route::get('/emails/folders', [EmailController::class, 'folders']);
 Route::get('/emails/sent', [EmailController::class, 'sent']);

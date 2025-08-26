@@ -89,7 +89,6 @@ class EmailService
             $list = [];
             foreach ($recipients->all() as $r) {
                 $list[] = [
-                    'name'  => $r->personal ?? null,
                     'email' => $r->mail ?? null
                 ];
             }
@@ -97,8 +96,6 @@ class EmailService
         };
 
         $toList  = $mapRecipients($message->getTo());
-        $ccList  = $mapRecipients($message->getCc());
-        $bccList = $mapRecipients($message->getBcc());
 
         // Attachments
         $attachmentsList = [];
@@ -124,12 +121,7 @@ class EmailService
             'seen'          => $flags['seen'],
             'flagged'       => $flags['flagged'],
             'answered'      => $flags['answered'],
-            'isNew'         => !$flags['seen'],
-            'attachments'   => array_map(fn($att) => $att['filename'], $attachmentsList),
-            'category'      => $message->getFolderPath(),
             'recipients'    => $toList,
-            'cc'            => $ccList,
-            'bcc'           => $bccList,
             'body'          => [
                 'text' => $message->getTextBody(),
                 'html' => $message->getHTMLBody(),
@@ -149,5 +141,26 @@ class EmailService
     public function resolveFolder($key)
     {
         return $this->folderMap[strtolower($key)] ?? 'INBOX';
+    }
+    
+    /**
+     * ✅ Sekali fetch semua folder
+     */
+    public function fetchAllEmails($limit = 20): array
+    {
+        $result = [];
+
+        foreach ($this->folderMap as $key => $imapFolderName) {
+            try {
+                $folder = $this->client->getFolder($imapFolderName);
+                $messages = $folder->messages()->all()->limit($limit)->get();
+
+                $result[$key] = $messages->map(fn($msg) => $this->parseEmail($msg))->toArray();
+            } catch (\Exception $e) {
+                $result[$key] = [];
+            }
+        }
+
+        return $result;
     }
 }

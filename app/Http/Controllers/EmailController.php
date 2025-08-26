@@ -43,6 +43,13 @@ class EmailController extends Controller
         return response()->json($this->emailService->getJunk());
     }
 
+    public function all()
+    {
+        // ✅ sekali fetch semua folder (inbox, sent, draft, deleted, junk)
+        $emails = $this->emailService->fetchAllEmails();
+        return response()->json($emails);
+    }
+
     public function show($folder, $uid)
     {
         $folderName = $this->emailService->resolveFolder($folder);
