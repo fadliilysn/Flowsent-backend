@@ -5,7 +5,7 @@ Setiap fitur memiliki file markdown terpisah yang menjelaskan endpoint, fungsion
 
 ## Daftar Fitur
 
--   [Auth](./docs/features/auth.md)
+-   [Authentication](./docs/features/auth.md)
 -   [Email Management](./docs/features/email-management.md)
 
 ---

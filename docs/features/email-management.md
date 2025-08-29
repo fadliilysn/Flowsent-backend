@@ -23,13 +23,13 @@ Mencakup pengambilan daftar email, filtering berdasarkan folder, serta manajemen
 
 ## Fungsionalitas
 
--   [ ] Menampilkan semua email
--   [ ] Ambil daftar email dari berbagai folder
--   [ ] Ambil detail email berdasarkan folder & UID
--   [ ] Mendukung pagination/limit default (contoh: 20 email terbaru)
--   [ ] Kirim email
--   [x] Kirim email dengan attachment (belum tersedia)
--   [x] Hapus permanen email (belum tersedia)
+-   [x] Menampilkan semua email
+-   [x] Ambil daftar email dari berbagai folder
+-   [x] Ambil detail email berdasarkan folder & UID
+-   [x] Mendukung pagination/limit default (contoh: 20 email terbaru)
+-   [x] Kirim email
+-   [ ] Kirim email dengan attachment (belum tersedia)
+-   [ ] Hapus permanen email (belum tersedia)
 
 ## Alur Singkat
 

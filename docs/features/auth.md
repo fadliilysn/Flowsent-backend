@@ -22,11 +22,11 @@ Menggunakan JWT untuk proses login, otorisasi, dan proteksi endpoint.
 
 ## Fungsionalitas
 
--   [ ] Login user dengan validasi credential
--   [ ] Generate JWT token
--   [ ] Proteksi endpoint menggunakan middleware `auth.token`
--   [ ] Logout user
--   [x] Refresh token (belum tersedia)
+-   [x] Login user dengan validasi credential
+-   [x] Generate JWT token
+-   [x] Proteksi endpoint menggunakan middleware `auth.token`
+-   [x] Logout user
+-   [ ] Refresh token (belum tersedia)
 
 ## Alur Singkat
 
@@ -52,4 +52,4 @@ Menggunakan JWT untuk proses login, otorisasi, dan proteksi endpoint.
 
 -   Tampilan output endpoint POST /logout
 
-    > ![Output Logout](../screenshots/api-logut.png "Tampilan output user sudah logout dan token invalid")
+    > ![Output Logout](../screenshots/api-logout.png "Tampilan output user sudah logout dan token invalid")
