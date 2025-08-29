@@ -3,8 +3,13 @@
 Dokumentasi ini berisi daftar fitur utama yang tersedia di backend Flowsent.  
 Setiap fitur memiliki file markdown terpisah yang menjelaskan endpoint, fungsionalitas, serta catatan teknis.
 
-## Daftar Fitur
+## Struktur
 
+-   [Setup](./docs/features/setup.md) — Cara menjalankan project (lokal).
+-   [Overview](./docs/features/overview.md) — Ringkasan progress project saat ini.
+
+
+## Daftar fitur
 -   [Authentication](./docs/features/auth.md)
 -   [Email Management](./docs/features/email-management.md)
 
