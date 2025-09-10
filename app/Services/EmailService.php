@@ -47,25 +47,31 @@ class EmailService
     }
 
 
-    // move email antar folder
-    public function moveEmail($folder, $uid, $targetFolder)
+    public function moveEmail($folder, $uids, $targetFolder)
     {
         $client = $this->client;
         $client->connect();
 
-        // buka folder asal
-        $mailbox = $client->getFolder($folder);
+        $imapSource = $this->resolveFolder($folder);
+        $imapTarget = $this->resolveFolder($targetFolder);
 
-        // ambil message by UID
-        $message = $mailbox->query()->getMessageByUid($uid);
+        $mailbox = $client->getFolder($imapSource);
 
-        if ($message) {
-            $message->move($targetFolder); // contoh: "Junk"
-            return true;
+        $uids = is_array($uids) ? $uids : [$uids]; // pastikan selalu array
+
+        $moved = [];
+        foreach ($uids as $uid) {
+            $message = $mailbox->query()->getMessageByUid($uid);
+            if ($message) {
+                $message->move($imapTarget);
+                $moved[] = $uid;
+            }
         }
 
-        return false;
+        return $moved;
     }
+
+
 
     // Create a new folder
     public function createFolder($folderName)
@@ -305,6 +311,7 @@ class EmailService
         return [
             'uid'           => $message->getUid(),
             'folder'        => $message->getFolderPath(),
+            'messageId'  => $message->getMessageId() ? (string) $message->getMessageId()->first() : null,
             'sender'        => $message->getFrom()[0]->personal ?? $message->getFrom()[0]->mail,
             'senderEmail'   => $message->getFrom()[0]->mail ?? null,
             'subject'       => (string) $message->getSubject(),

@@ -97,28 +97,29 @@ class EmailController extends Controller
     public function move(Request $request)
     {
         $request->validate([
-            'folder'        => 'required|string',       // folder asal (Inbox, Sent, dll.)
-            'email_id'      => 'required',              // UID email
-            'target_folder' => 'required|string'        // folder tujuan
+            'folder'        => 'required|string',
+            'email_ids'     => 'required|array',
+            'target_folder' => 'required|string'
         ]);
 
         try {
-            $result = $this->emailService->moveEmail(
+            $moved = $this->emailService->moveEmail(
                 $request->input('folder'),
-                $request->input('email_id'),
+                $request->input('email_ids'),
                 $request->input('target_folder')
             );
 
-            if (!$result) {
+            if (empty($moved)) {
                 return response()->json([
                     'status'  => 'fail',
-                    'message' => 'Email tidak ditemukan',
+                    'message' => 'Tidak ada email ditemukan untuk dipindahkan',
                 ], 404);
             }
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Email berhasil dipindahkan',
+                'message' => count($moved) . ' email berhasil dipindahkan',
+                'moved'   => $moved,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -128,6 +129,7 @@ class EmailController extends Controller
             ], 500);
         }
     }
+
 
     public function markAsFlagged(Request $request)
     {
