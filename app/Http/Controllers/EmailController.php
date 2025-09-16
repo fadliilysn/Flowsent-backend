@@ -32,42 +32,6 @@ class EmailController extends Controller
         }
     }
 
-    public function createFolder(Request $request)
-    {
-        $request->validate([
-            'folder_name' => 'required|string'
-        ]);
-
-        try {
-            $this->emailService->createFolder($request->input('folder_name'));
-
-            return response()->json([
-                'status'  => 'success',
-                'message' => 'Folder berhasil dibuat',
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status'  => 'fail',
-                'message' => 'Gagal membuat folder',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function folders()
-    {
-        try {
-            $folders = $this->emailService->listFolders();
-            return response()->json($folders);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status'  => 'fail',
-                'message' => 'Gagal mengambil daftar folder',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function deletePermanentAll()
     {
         $result = $this->emailService->deletePermanentAll();
