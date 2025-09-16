@@ -9,6 +9,7 @@
         "php": "^8.2",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "predis/predis": "^3.2",
         "tymon/jwt-auth": "^2.2",
         "webklex/laravel-imap": "^6.2"
     },

@@ -5,6 +5,8 @@ namespace App\Services;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Webklex\IMAP\Facades\Client;
+use Symfony\Component\Mime\Email as SymfonyEmail;
+use Symfony\Component\Mime\Address;
 
 class MailerService
 {
@@ -56,80 +58,36 @@ class MailerService
             $client = Client::account('default');
             $client->connect();
 
-            // Cari folder Sent yang tersedia
-            $folders = $client->getFolders();
-            $sentFolder = collect($folders)->first(function ($f) {
-                return in_array(strtolower($f->name), ['sent', 'sent items', 'inbox.sent']);
-            });
+            $sentFolder = $client->getFolder('Sent Items'); // sesuai server kamu
 
-            if ($sentFolder) {
-                $fromEmail = config('mail.from.address');
-                $fromName  = 'Me';
-                $date      = date('r'); // RFC2822 format
-
-                if (empty($attachments)) {
-                    // --- Hanya HTML body ---
-                    $headers = "From: {$fromName} <{$fromEmail}>\r\n";
-                    $headers .= "To: {$to}\r\n";
-                    $headers .= "Subject: {$subject}\r\n";
-                    $headers .= "Date: {$date}\r\n";
-                    $headers .= "MIME-Version: 1.0\r\n";
-                    $headers .= "Content-Type: text/html; charset=UTF-8\r\n\r\n";
-
-                    $rawMessage = $headers . $body;
-                } else {
-                    // --- HTML + Attachment ---
-                    $boundary = md5(time());
-
-                    $headers = "From: {$fromName} <{$fromEmail}>\r\n";
-                    $headers .= "To: {$to}\r\n";
-                    $headers .= "Subject: {$subject}\r\n";
-                    $headers .= "Date: {$date}\r\n";
-                    $headers .= "MIME-Version: 1.0\r\n";
-                    $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n\r\n";
-
-                    $rawMessage = $headers;
-
-                    // Bagian HTML
-                    $rawMessage .= "--{$boundary}\r\n";
-                    $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
-                    $rawMessage .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-                    $rawMessage .= $body . "\r\n\r\n";
-
-                    // Bagian attachment
-                    foreach ($attachments as $file) {
-                        // Handle UploadedFile dari request
-                        if ($file instanceof \Illuminate\Http\UploadedFile) {
-                            $filename = $file->getClientOriginalName();
-                            $mimeType = $file->getMimeType();
-                            $fileData = chunk_split(base64_encode(file_get_contents($file->getRealPath())));
-                        } else {
-                            // fallback kalau dikirim path string
-                            if (!file_exists($file)) {
-                                continue;
-                            }
-                            $filename = basename($file);
-                            $mimeType = mime_content_type($file);
-                            $fileData = chunk_split(base64_encode(file_get_contents($file)));
-                        }
-
-                        $rawMessage .= "--{$boundary}\r\n";
-                        $rawMessage .= "Content-Type: {$mimeType}; name=\"{$filename}\"\r\n";
-                        $rawMessage .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n";
-                        $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
-                        $rawMessage .= $fileData . "\r\n\r\n";
-                    }
-
-                    // Tutup boundary
-                    $rawMessage .= "--{$boundary}--\r\n";
-                }
-
-                $sentFolder->appendMessage($rawMessage);
-
-                Log::info("Email berhasil disimpan ke Sent folder: " . $sentFolder->name);
-            } else {
+            if (!$sentFolder) {
                 Log::warning("Tidak ditemukan folder Sent di akun IMAP.");
+                return;
             }
+
+            // Build email dengan Symfony\Mime
+            $email = new SymfonyEmail();
+            $email->from(new Address(config('mail.from.address'), "Me"))
+                ->to(new Address($to))
+                ->subject($subject ?? "(no subject)")
+                ->text(strip_tags($body ?? ""))
+                ->html($body ?? "");
+
+            foreach ($attachments as $file) {
+                if ($file instanceof \Illuminate\Http\UploadedFile) {
+                    $email->attachFromPath(
+                        $file->getRealPath(),
+                        $file->getClientOriginalName(),
+                        $file->getMimeType()
+                    );
+                }
+            }
+
+            // SymfonyEmail akan generate Message-ID & Date otomatis
+            $raw = $email->toString();
+            $sentFolder->appendMessage($raw, ["\\Seen"]);
+
+            Log::info("Email berhasil disimpan ke Sent Items.");
         } catch (\Exception $e) {
             Log::error('Gagal simpan ke Sent: ' . $e->getMessage());
         }

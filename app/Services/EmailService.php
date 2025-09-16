@@ -4,6 +4,8 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 use Webklex\IMAP\Facades\Client;
+use Symfony\Component\Mime\Email as SymfonyEmail;
+use Symfony\Component\Mime\Address;
 
 class EmailService
 {
@@ -71,6 +73,35 @@ class EmailService
         return $moved;
     }
 
+    public function deletePermanentAll()
+    {
+        try {
+            // Force ke folder Deleted Items (pakai resolver biar konsisten)
+            $imapFolder = $this->resolveFolder('deleted');
+            $folder = $this->client->getFolder($imapFolder);
+
+            if (!$folder) {
+                throw new \Exception("Folder {$imapFolder} tidak ditemukan");
+            }
+
+            // Ambil semua pesan di Deleted Items
+            $messages = $folder->messages()->all()->get();
+
+            foreach ($messages as $message) {
+                $message->delete(true); // true = permanent delete
+            }
+
+            return [
+                'success' => true,
+                'message' => 'All emails in Deleted Items permanently deleted'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to permanently delete emails: ' . $e->getMessage()
+            ];
+        }
+    }
 
 
     // Create a new folder
@@ -265,6 +296,59 @@ class EmailService
         }
 
         return null;
+    }
+
+    public function saveDraft($to, $subject, $body, $attachments = [])
+    {
+        $this->client->connect();
+
+        $imapFolder = $this->resolveFolder('draft'); // Drafts
+        $folder = $this->client->getFolder($imapFolder);
+
+        if (!$folder) {
+            throw new \Exception("Drafts folder not found in IMAP");
+        }
+
+        // Bangun email dengan Symfony\Mime
+        $email = new SymfonyEmail();
+        $email->subject($subject ?? "(no subject)");
+
+        if ($to) {
+            $email->to(new Address($to));
+        }
+
+        // Gunakan nama "Draft" agar mudah dikenali
+        $email->from(new Address("magang@rekaprihatanto.web.id", "Draft"));
+
+        // Isi text + html body (biar tidak kosong di parseEmail)
+        $plainText = strip_tags($body ?? "");
+        $email->text($plainText);
+        $email->html($body ?? "");
+
+        // Tambah attachment
+        foreach ($attachments as $file) {
+            $email->attachFromPath(
+                $file->getRealPath(),
+                $file->getClientOriginalName(),
+                $file->getMimeType()
+            );
+        }
+
+        // Append ke Drafts
+        $raw = $email->toString();
+        $folder->appendMessage($raw, ["\\Draft"]);
+
+        return [
+            "subject"     => $subject,
+            "to"          => $to,
+            "sender"      => "Draft",
+            "senderEmail" => "magang@rekaprihatanto.web.id",
+            "body"        => [
+                "text" => $plainText,
+                "html" => $body,
+            ],
+            "attachments" => collect($attachments)->map(fn($f) => $f->getClientOriginalName())->toArray(),
+        ];
     }
 
 

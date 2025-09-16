@@ -68,6 +68,17 @@ class EmailController extends Controller
         }
     }
 
+    public function deletePermanentAll()
+    {
+        $result = $this->emailService->deletePermanentAll();
+
+        if ($result['success']) {
+            return response()->json($result, 200);
+        }
+
+        return response()->json($result, 500);
+    }
+
     public function markAsRead(Request $request)
     {
         $request->validate([
@@ -182,6 +193,43 @@ class EmailController extends Controller
             ], 500);
         }
     }
+
+    public function saveDraft(Request $request)
+    {
+        $request->validate([
+            'to'           => 'nullable|email', // draft bisa tanpa penerima
+            'subject'      => 'nullable|string|max:255',
+            'body'         => 'nullable|string',
+            'attachments'  => 'nullable|array',
+            'attachments.*' => 'file|max:10240' // max 10MB
+        ]);
+
+        try {
+            $attachments = $request->hasFile('attachments')
+                ? $request->file('attachments')
+                : [];
+
+            $draft = $this->emailService->saveDraft(
+                $request->to,
+                $request->subject,
+                $request->body,
+                $attachments
+            );
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Draft saved successfully',
+                'draft'   => $draft
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'fail',
+                'message' => 'Failed to save draft',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     /**
      * Download attachment langsung (stream ke browser)
