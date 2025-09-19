@@ -20,3 +20,5 @@ git clone -b fadli git@source.kirim.email:internship/flowsent-back.git (-b untuk
 cd nama-project
 composer install
 php artisan serve
+docker compose up -d --build redis
+

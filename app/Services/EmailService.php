@@ -477,8 +477,10 @@ class EmailService
         $attachmentsList = [];
         foreach ($message->getAttachments() as $attachment) {
             $attachmentsList[] = [
+                'partId'       => $attachment->partId,
                 'filename'      => $attachment->name,
                 'size'          => $attachment->size,
+                'mime_type'    => $attachment->mime,
                 'download_url'  => url("emails/attachments/{$message->getUid()}/download/" . urlencode($attachment->name)),
             ];
         }

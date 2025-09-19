@@ -19,17 +19,14 @@ class MailerService
                     ->html($body);
 
                 // Handle attachments dengan pengecekan yang lebih detail
-                if (!empty($attachments)) {
-                    foreach ($attachments as $attachment) {
-                        // Pastikan file attachment valid
-                        if ($attachment && $attachment->isValid()) {
-                            $message->attach(
-                                $attachment->getRealPath(),
-                                [
-                                    'as' => $attachment->getClientOriginalName(),
-                                    'mime' => $attachment->getMimeType()
-                                ]
-                            );
+                if (!empty($data['attachments'])) {
+                    foreach ($data['attachments'] as $att) {
+                        $filePath = storage_path('app/'.$att['path']);
+                        if (file_exists($filePath)) {
+                            $mailer->attach($filePath, [
+                                'as' => $att['filename'],
+                                'mime' => $att['mime_type'] ?? 'application/octet-stream'
+                            ]);
 
                             Log::info('Attachment added: ' . $attachment->getClientOriginalName());
                         } else {
