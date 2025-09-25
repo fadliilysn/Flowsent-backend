@@ -40,33 +40,6 @@ class EmailController extends Controller
         }
     }
 
-    /**
-     * Ambil email dari 1 folder (cache-first).
-     * Bisa pakai ?refresh=1 untuk force refresh.
-     */
-    public function folder(Request $request, $folderKey)
-    {
-        try {
-            $forceRefresh = $request->boolean('refresh', false);
-            $emails = $this->emailService->getFolderEmails($folderKey, $forceRefresh);
-
-            return response()->json([
-                'status' => 'success',
-                'data'   => $emails,
-                'folder' => $folderKey,
-                'cached' => !$forceRefresh,
-            ]);
-        } catch (\Exception $e) {
-            Log::error("Error fetching folder {$folderKey}: " . $e->getMessage());
-
-            return response()->json([
-                'status'  => 'fail',
-                'message' => "Gagal mengambil email dari folder {$folderKey}",
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
-
     public function deletePermanentAll()
     {
         $result = $this->emailService->deletePermanentAll();
@@ -74,25 +47,48 @@ class EmailController extends Controller
         return response()->json($result, $result['success'] ? 200 : 500);
     }
 
+    public function deletePermanent(Request $request)
+    {
+        $request->validate([
+            'messageIds' => 'required|array',
+        ]);
+
+        try {
+            $deleted = $this->emailService->deletePermanent(
+                $request->input('messageIds')
+            );
+
+            return response()->json([
+                'success' => true,
+                'deleted' => $deleted,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete emails: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function move(Request $request)
     {
         $request->validate([
             'folder'        => 'required|string',
-            'email_ids'     => 'required|array',
+            'message_ids'   => 'required|array',
             'target_folder' => 'required|string'
         ]);
 
         try {
-            $moved = $this->emailService->moveEmail(
+            $moved = $this->emailService->moveEmailByMessageId(
                 $request->folder,
-                $request->email_ids,
+                $request->message_ids,
                 $request->target_folder
             );
 
             return response()->json([
                 'status'  => 'success',
                 'message' => count($moved) . ' email berhasil dipindahkan',
-                'moved'   => $moved,
+                'moved'   => $moved, // array of messageIds yg berhasil dipindah
             ]);
         } catch (\Exception $e) {
             Log::error("Error moving email: " . $e->getMessage());
@@ -108,12 +104,12 @@ class EmailController extends Controller
     public function markAsRead(Request $request)
     {
         $request->validate([
-            'folder'   => 'required|string',
-            'email_id' => 'required'
+            'folder'      => 'required|string',
+            'message_id'  => 'required|string'
         ]);
 
         try {
-            $this->emailService->markAsRead($request->folder, $request->email_id);
+            $this->emailService->markAsRead($request->folder, $request->message_id);
 
             return response()->json([
                 'status'  => 'success',
@@ -133,12 +129,12 @@ class EmailController extends Controller
     public function markAsFlagged(Request $request)
     {
         $request->validate([
-            'folder'   => 'required|string',
-            'email_id' => 'required'
+            'folder'      => 'required|string',
+            'message_id'  => 'required|string'
         ]);
 
         try {
-            $this->emailService->markAsFlagged($request->folder, $request->email_id);
+            $this->emailService->markAsFlagged($request->folder, $request->message_id);
 
             return response()->json([
                 'status'  => 'success',
@@ -158,12 +154,12 @@ class EmailController extends Controller
     public function markAsUnflagged(Request $request)
     {
         $request->validate([
-            'folder'   => 'required|string',
-            'email_id' => 'required'
+            'folder'      => 'required|string',
+            'message_id'  => 'required|string'
         ]);
 
         try {
-            $this->emailService->markAsUnflagged($request->folder, $request->email_id);
+            $this->emailService->markAsUnflagged($request->folder, $request->message_id);
 
             return response()->json([
                 'status'  => 'success',
@@ -263,14 +259,13 @@ class EmailController extends Controller
             if (preg_match('/(image|pdf|text)/i', $mimeType)) {
                 return response($attachment['content'])
                     ->header('Content-Type', $mimeType)
-                    ->header('Content-Disposition', 'inline; filename="'.$fileName.'"');
+                    ->header('Content-Disposition', 'inline; filename="' . $fileName . '"');
             }
 
             // fallback: force download dengan nama asli
             return response($attachment['content'])
                 ->header('Content-Type', $mimeType)
-                ->header('Content-Disposition', 'attachment; filename="'.$fileName.'"');
-
+                ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to preview attachment',
@@ -278,23 +273,6 @@ class EmailController extends Controller
             ], 500);
         }
     }
-
-
-
-
-    // Tambahkan untuk simpan attachment sementara
-    public function uploadAttachment(Request $request)
-    {
-        $file = $request->file('attachment');
-        $path = $file->store('tmp/attachments');
-
-        return response()->json([
-            'filename' => $file->getClientOriginalName(),
-            'path' => $path,
-            'mime_type' => $file->getMimeType()
-        ]);
-    }
-
 
     public function send(Request $request)
     {

@@ -30,6 +30,7 @@ Route::middleware('auth.token')->group(function () {
         Route::post('/move', [EmailController::class, 'move']);
 
         // Delete operations
+        Route::delete('/deletePermanent', [EmailController::class, 'deletePermanent']);
         Route::delete('/delete-permanent-all', [EmailController::class, 'deletePermanentAll']);
 
         // Draft and send
@@ -40,8 +41,6 @@ Route::middleware('auth.token')->group(function () {
         Route::get('/attachments/{uid}/download/{filename}', [EmailController::class, 'downloadAttachment']);
         // Preview attachment
         Route::get('/attachments/{uid}/preview/{filename}', [EmailController::class, 'previewAttachment']);
-        // Upload attachment untuk draft
-        Route::post('/attachments/upload', [EmailController::class, 'uploadAttachment']);
-
+        
     });
 });
