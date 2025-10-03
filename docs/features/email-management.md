@@ -3,7 +3,7 @@
 ## Deskripsi
 
 Fitur untuk mengelola email yang terhubung ke server IMAP/SMTP.  
-Mencakup pengambilan daftar email, filtering berdasarkan folder, serta manajemen status (draft, sent, delete, junk).
+Mencakup pengambilan daftar email, filtering berdasarkan folder, manajemen status, draft, pengiriman, dan attachment.
 
 ## Tujuan
 
@@ -13,23 +13,29 @@ Mencakup pengambilan daftar email, filtering berdasarkan folder, serta manajemen
 
 ## Endpoint
 
--   `GET /emails/all` : Mendapatkan semua email
--   `GET /emails/inbox` : Mendapatkan email di folder Inbox
--   `GET /emails/sent` : Mendapatkan email terkirim
--   `GET /emails/draft` : Mendapatkan email draft
--   `GET /emails/delete` : Mendapatkan email yang dihapus
--   `GET /emails/junk` : Mendapatkan email spam/junk
--   `POST /emails/send` : Kirim email baru
+- `GET /emails/all` : Mendapatkan semua email
+- `POST /emails/mark-as-read` : Tandai email sebagai sudah dibaca
+- `POST /emails/flag` : Tandai email sebagai penting (flagged)
+- `POST /emails/unflag` : Hapus tanda penting (unflag)
+- `POST /emails/move` : Pindahkan email antar folder
+- `DELETE /emails/delete-permanent-all` : Hapus permanen semua email dalam folder
+- `POST /emails/draft` : Simpan email sebagai draft
+- `POST /emails/send` : Kirim email baru
+- `GET /emails/attachments/{uid}/download/{filename}` : Unduh attachment
+- `GET /emails/attachments/{uid}/preview/{filename}` : Preview attachment
 
 ## Fungsionalitas
 
--   [x] Menampilkan semua email
--   [x] Ambil daftar email dari berbagai folder
--   [x] Ambil detail email berdasarkan folder & UID
--   [x] Mendukung pagination/limit default (contoh: 20 email terbaru)
--   [x] Kirim email
--   [ ] Kirim email dengan attachment (belum tersedia)
--   [ ] Hapus permanen email (belum tersedia)
+- [x] Menampilkan semua email
+- [x] Ambil daftar email dari berbagai folder
+- [x] Ambil detail email berdasarkan folder & UID
+- [x] Mendukung pagination/limit default (contoh: 20 email terbaru)
+- [x] Tandai email (read/unread, flagged/unflagged)
+- [x] Pindahkan email antar folder
+- [x] Kirim email
+- [x] Simpan draft email
+- [x] Unduh & preview attachment
+- [x] Hapus permanen email
 
 ## Alur Singkat
 
@@ -49,25 +55,25 @@ Mencakup pengambilan daftar email, filtering berdasarkan folder, serta manajemen
 
     > ![Output GET all](../screenshots/api-emails-all.png "Output fetch all email")
 
--   Tampilan output endpoint GET /emails/inbox
+-   Tampilan output endpoint GET /emails/mark-as-read
 
-    > ![Output GET inbox](../screenshots/api-emails-inbox.png "Output email pada bagian inbox")
+    > ![Output POST mark-as-read](../screenshots/api-emails-mark-as-read.png "Output email pada bagian mark as read")
 
--   Tampilan output endpoint Get /emails/sent
+-   Tampilan output endpoint Get /emails/flag
 
-    > ![Output GET sent](../screenshots/api-emails-sent.png "Output email pada bagian sent")
+    > ![Output POST flag](../screenshots/api-emails-flag.png "Output email pada bagian flag")
 
--   Tampilan output endpoint Get /emails/draft
+-   Tampilan output endpoint Get /emails/unflag
 
-    > ![Output GET draft](../screenshots/api-emails-drafts.png "Output email pada bagian draft")
+    > ![Output Post unflag](../screenshots/api-emails-unflag.png "Output email pada bagian unflag")
 
--   Tampilan output endpoint Get /emails/delete
+-   Tampilan output endpoint Get /emails/download
 
-    > ![Output GET delete](../screenshots/api-emails-delete.png "Output email pada bagian delete")
+    > ![Output Post download](../screenshots/api-emails-download.png "Output email pada bagian download")
 
--   Tampilan output endpoint Get /emails/junk
+-   Tampilan output endpoint Get /emails/preview
 
-    > ![Output GET junk](../screenshots/api-emails-junk.png "Output email pada bagian junk")
+    > ![Output Post preview](../screenshots/api-emails-preview.png "Output email pada bagian preview")
 
 -   Tampilan output endpoint POST /emails/send
 

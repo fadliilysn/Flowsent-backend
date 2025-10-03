@@ -35,6 +35,7 @@ Route::middleware('auth.token')->group(function () {
 
         // Draft and send
         Route::post('/draft', [EmailController::class, 'saveDraft']);
+        Route::post('/draft/{id}/send', [EmailController::class, 'sendDraft']);
         Route::post('/send', [EmailController::class, 'send']);
 
         // Attachments

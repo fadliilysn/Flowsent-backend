@@ -283,21 +283,43 @@ class EmailController extends Controller
                 'subject'      => 'required|string|max:64',
                 'body'         => 'required|string',
                 'attachments'  => 'nullable|array',
-                'attachments.*' => 'file|max:10240'  // max 10MB per file
+                'attachments.*' => 'file|max:10240', // max 10MB per file
+                'draft_id'     => 'nullable|string',
+                'stored_attachments' => 'nullable|json',
+                'message_id'   => 'nullable|string',
             ]);
 
-            $attachments = [];
-            if ($request->hasFile('attachments')) {
-                $attachments = $request->file('attachments');
+            $attachments = $request->file('attachments') ?? [];
+            $draftId = $request->input('draft_id');
+            $storedAttachments = $request->input('stored_attachments') ? json_decode($request->input('stored_attachments'), true) : [];
+            $messageId = $request->input('message_id');
 
-                Log::info('Attachments received: ' . count($attachments));
+            Log::info('Processing send email request', [
+                'to' => $request->to,
+                'subject' => $request->subject,
+                'draft_id' => $draftId,
+                'message_id' => $messageId,
+                'new_attachments_count' => count($attachments),
+                'stored_attachments_count' => count($storedAttachments),
+            ]);
+
+            if ($attachments) {
                 foreach ($attachments as $index => $file) {
-                    Log::info("Attachment {$index}: " . $file->getClientOriginalName() .
-                        ' - Size: ' . $file->getSize() .
-                        ' - MIME: ' . $file->getMimeType());
+                    Log::info("New attachment {$index}", [
+                        'name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime' => $file->getMimeType(),
+                    ]);
                 }
-            } else {
-                Log::info('No attachments received');
+            }
+
+            if ($storedAttachments) {
+                foreach ($storedAttachments as $index => $att) {
+                    Log::info("Stored attachment {$index}", [
+                        'name' => $att['name'] ?? $att['original_name'],
+                        'mime' => $att['mime'] ?? $att['mime_type'],
+                    ]);
+                }
             }
 
             // Kirim email via service
@@ -305,23 +327,38 @@ class EmailController extends Controller
                 $request->to,
                 $request->subject,
                 $request->body,
-                $attachments
+                $attachments,
+                $draftId,
+                $storedAttachments
             );
 
+            // Jika dari draft, pindahkan draft ke deleted
+            if ($draftId && $messageId) {
+                $emailService = app(EmailService::class);
+                $emailService->moveEmailByMessageId('draft', $messageId, 'deleted');
+                Log::info("Draft moved to deleted", ['messageId' => $messageId]);
+            }
+
             return response()->json([
-                'status'           => 'success',
-                'message'            => 'Email sent successfully',
-                'to'                => $request->to,
-                'subject'           => $request->subject,
-                'attachments_count' => count($attachments)
+                'status' => 'success',
+                'message' => 'Email sent successfully',
+                'to' => $request->to,
+                'subject' => $request->subject,
+                'attachments_count' => count($attachments) + count($storedAttachments),
             ]);
         } catch (\Exception $e) {
-            Log::error('Email sending error: ' . $e->getMessage());
+            Log::error('Email sending error in controller', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'to' => $request->to,
+                'subject' => $request->subject,
+                'draft_id' => $draftId,
+            ]);
 
             return response()->json([
                 'status' => 'error',
-                'message'  => 'Error sending email',
-                'error'   => $e->getMessage()
+                'message' => 'Error sending email',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

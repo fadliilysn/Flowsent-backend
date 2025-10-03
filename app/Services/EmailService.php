@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Redis;
 use Webklex\IMAP\Facades\Client;
 use Symfony\Component\Mime\Email as SymfonyEmail;
 use Symfony\Component\Mime\Address;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class EmailService
 {
@@ -282,32 +284,63 @@ class EmailService
         $email->text($plainText);
         $email->html($body ?? "");
 
+        // generate draftId deterministik
+        $now = now()->format('Y-m-d H:i'); // truncated ke menit
+        $bodySnippet = substr($plainText, 0, 30);
+        $sender = "magang@rekaprihatanto.web.id";
+
+        $draftId = substr(
+            md5(($subject ?? '') . $bodySnippet . $sender . $now),
+            0,
+            30
+        );
+
+        // simpan attachments ke storage
+        $storedAttachments = [];
         foreach ($attachments as $file) {
+            $filename = preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $path = $file->storeAs("attachments/drafts/{$draftId}", $filename);
+
+            $storedAttachments[] = [
+                'draft_id'      => $draftId,
+                'original_name' => $file->getClientOriginalName(),
+                'stored_name'   => $filename,
+                'stored_path'   => $path,
+                'mime_type'     => $file->getMimeType(),
+                'url'           => Storage::url($path),
+            ];
+
             $email->attachFromPath(
-                $file->getRealPath(),
+                Storage::path($path),
                 $file->getClientOriginalName(),
                 $file->getMimeType()
             );
         }
 
+        // simpan draft ke folder Drafts
         $raw = $email->toString();
-        $folder->appendMessage($raw, ["\\Draft"]);
+        $folder->appendMessage($raw, ["\\Draft", "\\Seen"]);
 
-        // Clear cache untuk folder draft karena ada email baru
         $this->clearFolderCache('draft');
 
         return [
-            "subject"     => $subject,
-            "to"          => $to,
-            "sender"      => "Draft",
-            "senderEmail" => "magang@rekaprihatanto.web.id",
-            "body"        => [
-                "text" => $plainText,
-                "html" => $body,
+            "status"  => "success",
+            "message" => "Draft saved successfully",
+            "draft"   => [
+                "folder"      => $imapFolder,
+                "draftId"     => $draftId,
+                "sender"      => "Draft",
+                "subject"     => $subject,
+                "body"        => [
+                    "text" => $plainText,
+                    "html" => $body,
+                ],
+                "rawAttachments" => $storedAttachments,
+                "timestamp" => now()->format('d F Y, H:i T'),
             ],
-            "attachments" => collect($attachments)->map(fn($f) => $f->getClientOriginalName())->toArray(),
         ];
     }
+
 
     /**
      * Cache Helper Methods
@@ -454,6 +487,19 @@ class EmailService
     private function parseEmail($message)
     {
         $dateAttr = $message->getDate()->first() ?? $message->getInternalDate()->first();
+        $formattedDate = $dateAttr ? $dateAttr->format('Y-m-d H:i') : '';
+
+        $plainText = strip_tags($message->getTextBody() ?? $message->getHTMLBody() ?? '');
+        $subject   = (string) $message->getSubject();
+        $sender    = $message->getFrom()[0]->mail ?? '';
+        $bodySnippet = substr($plainText, 0, 30);
+
+        // rebuild draftId dengan formula yang sama
+        $draftId = substr(
+            md5($subject . $bodySnippet . $sender . $formattedDate),
+            0,
+            30
+        );
 
         $flagsRaw = $message->getFlags()->toArray();
         $flags = [
@@ -471,7 +517,6 @@ class EmailService
             }
             return $list;
         };
-
         $toList = $mapRecipients($message->getTo());
 
         $attachmentsList = [];
@@ -480,6 +525,7 @@ class EmailService
                 'filename'      => $attachment->name,
                 'size'          => $attachment->size,
                 'download_url'  => url("emails/attachments/{$message->getUid()}/download/" . urlencode($attachment->name)),
+                'mime_type'     => $attachment->mime ?? 'application/octet-stream',
             ];
         }
 
@@ -487,17 +533,18 @@ class EmailService
             'uid'           => $message->getUid(),
             'folder'        => $message->getFolderPath(),
             'messageId'     => $message->getMessageId() ? (string) $message->getMessageId()->first() : null,
-            'sender'        => $message->getFrom()[0]->personal ?? $message->getFrom()[0]->mail,
-            'senderEmail'   => $message->getFrom()[0]->mail ?? null,
-            'subject'       => (string) $message->getSubject(),
-            'preview'       => \Illuminate\Support\Str::limit(strip_tags($message->getTextBody() ?? $message->getHTMLBody()), 120),
+            'draftId'       => $draftId,
+            'sender'        => $message->getFrom()[0]->personal ?? $sender,
+            'senderEmail'   => $sender,
+            'subject'       => $subject,
+            'preview'       => \Illuminate\Support\Str::limit($plainText, 120),
             'timestamp'     => $dateAttr ? $dateAttr->format('d F Y, H:i T') : null,
             'seen'          => $flags['seen'],
             'flagged'       => $flags['flagged'],
             'answered'      => $flags['answered'],
             'recipients'    => $toList,
             'body'          => [
-                'text' => $message->getTextBody(),
+                'text' => $plainText,
                 'html' => $message->getHTMLBody(),
             ],
             'rawAttachments' => $attachmentsList,

@@ -26,7 +26,6 @@ Menggunakan JWT untuk proses login, otorisasi, dan proteksi endpoint.
 -   [x] Generate JWT token
 -   [x] Proteksi endpoint menggunakan middleware `auth.token`
 -   [x] Logout user
--   [ ] Refresh token (belum tersedia)
 
 ## Alur Singkat
 
